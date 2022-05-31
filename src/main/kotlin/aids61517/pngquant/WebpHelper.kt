@@ -14,19 +14,20 @@ import java.nio.file.WatchService
 import kotlin.coroutines.resume
 import kotlin.io.path.absolute
 
-object PngquantHelper {
+object WebpHelper {
     val coroutineScope = CoroutineScope(SupervisorJob())
 
     suspend fun run(filePath: Path) = suspendCancellableCoroutine<Path> { continuation ->
         val osName = System.getProperty("os.name")
             .lowercase()
 //        osName.startsWith("windows")
-        println("PngquantHelper run")
+        println("WebpHelper run")
         val exePath = copyExe(filePath)
-        val cmd = String.format("%s \"%s\"", exePath.toString(), filePath.toString())
-        println("PngquantHelper cmd = $cmd")
+        val outputFileName = filePath.toString().replace(".png", ".webp")
+        val cmd = String.format("%s -lossless \"%s\" -o \"%s\"", exePath.toString(), filePath.toString(), outputFileName)
+        println("WebpHelper cmd = $cmd")
         observeImageCreated(filePath) {
-            println("PngquantHelper observeImageCreated path = $it")
+            println("WebpHelper observeImageCreated path = $it")
             coroutineScope.launch(Dispatchers.IO) {
                 delay(200)
                 Files.deleteIfExists(exePath)
@@ -62,10 +63,10 @@ object PngquantHelper {
     }
 
     private fun copyExe(filePath: Path): Path {
-        val tempFilePath = filePath.parent.resolve("pngquant.exe")
-        javaClass.getResourceAsStream("/pngquant.exe")
+        val tempFilePath = filePath.parent.resolve("webp.exe")
+        javaClass.getResourceAsStream("/cwebp-windows-1.2.2.exe")
             ?.let {
-                println("PngquantHelper read file successfully")
+                println("WebpHelper read file successfully")
                 if (Files.notExists(tempFilePath)) {
                     Files.createFile(tempFilePath)
                 }
@@ -78,7 +79,7 @@ object PngquantHelper {
                             .buffer()
                             .use { sink ->
                                 sink.writeAll(source)
-                                println("PngquantHelper write file successfully, path = $tempFilePath")
+                                println("WebpHelper write file successfully, path = $tempFilePath")
                             }
                     }
             }

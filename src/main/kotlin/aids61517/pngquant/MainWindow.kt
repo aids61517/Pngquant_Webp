@@ -85,6 +85,7 @@ class MainWindow : BaseWindow() {
                                     println("file path = $it")
                                     val pngquantPath = PngquantHelper.run(it)
                                     println("pngquantPath = $pngquantPath")
+                                    WebpHelper.run(pngquantPath)
                                 }
                             }
                         },
@@ -104,6 +105,7 @@ class MainWindow : BaseWindow() {
                     this.onDispose {
                         println("onDispose")
                         PngquantHelper.coroutineScope.cancel()
+                        WebpHelper.coroutineScope.cancel()
                     }
                 }
             }
@@ -115,7 +117,7 @@ class MainWindow : BaseWindow() {
             fileFilter = FileNameExtensionFilter("*.png", "png")
         }
         return when(val returnValue = fileChooser.showOpenDialog(null)) {
-            JFileChooser.OPEN_DIALOG -> {
+            JFileChooser.APPROVE_OPTION -> {
                 println("returnValue = $returnValue")
                 Paths.get(fileChooser.selectedFile.absolutePath)
             }
