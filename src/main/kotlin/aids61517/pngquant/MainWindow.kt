@@ -29,6 +29,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
+import kotlin.io.path.absolute
 
 class MainWindow : BaseWindow() {
     companion object {
@@ -80,12 +81,12 @@ class MainWindow : BaseWindow() {
                     val coroutineScope = rememberCoroutineScope()
                     Button(
                         onClick = {
-                            chooseFile()?.let {
+                            chooseFile().let {
                                 coroutineScope.launch {
                                     println("file path = $it")
-                                    val pngquantPath = PngquantHelper.run(it)
-                                    println("pngquantPath = $pngquantPath")
-                                    WebpHelper.run(pngquantPath)
+                                    val pngquantPathList = PngquantHelper.run(it)
+                                    println("pngquantPathList = $pngquantPathList")
+                                    WebpHelper.run(pngquantPathList)
                                 }
                             }
                         },
@@ -112,18 +113,21 @@ class MainWindow : BaseWindow() {
         }
     }
 
-    private fun chooseFile(): Path? {
+    private fun chooseFile(): List<Path> {
         val fileChooser = JFileChooser().apply {
             fileFilter = FileNameExtensionFilter("*.png", "png")
+            isMultiSelectionEnabled = true
+            currentDirectory = File(Paths.get("").absolute().toString())
         }
-        return when(val returnValue = fileChooser.showOpenDialog(null)) {
+        return when (val returnValue = fileChooser.showOpenDialog(null)) {
             JFileChooser.APPROVE_OPTION -> {
                 println("returnValue = $returnValue")
-                Paths.get(fileChooser.selectedFile.absolutePath)
+                fileChooser.selectedFiles
+                    .map { Paths.get(it.absolutePath) }
             }
             else -> {
                 println("returnValue = $returnValue")
-                null
+                emptyList()
             }
         }
     }

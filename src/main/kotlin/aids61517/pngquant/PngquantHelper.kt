@@ -4,85 +4,86 @@ import kotlinx.coroutines.*
 import okio.buffer
 import okio.sink
 import okio.source
-import java.nio.charset.Charset
-import java.nio.file.FileSystems
-import java.nio.file.Files
-import java.nio.file.Path
+import java.nio.file.*
 import java.nio.file.StandardWatchEventKinds.*
-import java.nio.file.WatchEvent
-import java.nio.file.WatchService
 import kotlin.coroutines.resume
-import kotlin.io.path.absolute
 
 object PngquantHelper {
     val coroutineScope = CoroutineScope(SupervisorJob())
 
-    suspend fun run(filePath: Path) = suspendCancellableCoroutine<Path> { continuation ->
+    suspend fun run(filePathList: List<Path>) = withContext(Dispatchers.IO) {
         val osName = System.getProperty("os.name")
             .lowercase()
 //        osName.startsWith("windows")
-        println("PngquantHelper run")
-        val exePath = copyExe(filePath)
-        val cmd = String.format("%s \"%s\"", exePath.toString(), filePath.toString())
-        println("PngquantHelper cmd = $cmd")
-        observeImageCreated(filePath) {
-            println("PngquantHelper observeImageCreated path = $it")
-            coroutineScope.launch(Dispatchers.IO) {
-                delay(200)
-                Files.deleteIfExists(exePath)
+        println("PngquantHelper run, osName = $osName")
+        val exePath = createExeFile()
+        val createdFileList = filePathList.map {
+            coroutineScope.async(Dispatchers.IO) {
+                val cmd = String.format("%s \"%s\"", exePath.toString(), it.toString())
+                executeCmdAndGetImageCreated(cmd, it)
             }
-            continuation.resume(it)
+        }.awaitAll()
+
+        coroutineScope.launch(Dispatchers.IO) {
+            delay(200)
+            Files.deleteIfExists(exePath)
         }
 
-        Runtime.getRuntime()
-            .exec(cmd)
+        createdFileList
     }
 
-    private fun observeImageCreated(filePath: Path, onFileCreated: (Path) -> Unit) {
-        val directoryPath = filePath.parent
-        val watcher = FileSystems.getDefault().newWatchService()
-        val watchKey = directoryPath.register(watcher, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
-        coroutineScope.launch(Dispatchers.IO) {
+    private suspend fun executeCmdAndGetImageCreated(cmd: String, filePath: Path): Path {
+        return suspendCancellableCoroutine { continuation ->
+            val directoryPath = filePath.parent
+            val watcher = FileSystems.getDefault().newWatchService()
+            val watchKey = directoryPath.register(watcher, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
+            Runtime.getRuntime()
+                .exec(cmd)
+
             var doFind = true
+            val targetFileName = filePath.fileName.toString()
+                .replace(".png", "")
+                .let { String.format("%s-fs8.png", it) }
+
             while (doFind) {
                 val key = watcher.take()
                 key.pollEvents()
                     .filter { it.kind() != OVERFLOW }
                     .map { (it as WatchEvent<Path>).context() }
-                    .find { it.toString().endsWith("tmp").not() }
+                    .find { it.fileName.toString() == targetFileName }
                     ?.let {
                         val absolutePath = directoryPath.resolve(it.toString())
                         println("observeImageCreated path = $absolutePath")
                         watchKey.cancel()
-                        onFileCreated(absolutePath)
+                        continuation.resume(absolutePath)
                         doFind = false
                     } ?: key.reset()
             }
         }
     }
 
-    private fun copyExe(filePath: Path): Path {
-        val tempFilePath = filePath.parent.resolve("pngquant.exe")
+    private fun createExeFile(): Path {
+        val exeFilePath = Paths.get("pngquant.exe")
         javaClass.getResourceAsStream("/pngquant.exe")
             ?.let {
                 println("PngquantHelper read file successfully")
-                if (Files.notExists(tempFilePath)) {
-                    Files.createFile(tempFilePath)
+                if (Files.notExists(exeFilePath)) {
+                    Files.createFile(exeFilePath)
                 }
 
                 it.source()
                     .buffer()
                     .use { source ->
-                        Files.newOutputStream(tempFilePath)
+                        Files.newOutputStream(exeFilePath)
                             .sink()
                             .buffer()
                             .use { sink ->
                                 sink.writeAll(source)
-                                println("PngquantHelper write file successfully, path = $tempFilePath")
+                                println("PngquantHelper create exe successfully, path = $exeFilePath")
                             }
                     }
             }
 
-        return tempFilePath
+        return exeFilePath
     }
 }
