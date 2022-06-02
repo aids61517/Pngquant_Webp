@@ -6,6 +6,7 @@ import aids61517.pngquant.util.CopyFileHandler
 import kotlinx.coroutines.*
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import kotlin.io.path.absolute
 
 class WindowsWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutineScope) {
@@ -20,7 +21,10 @@ class WindowsWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutine
         CopyFileHandler.create(OSSourceChecker.osSource)
     }
 
-    override suspend fun run(filePathList: List<Path>): List<Path> {
+    override suspend fun run(
+        filePathList: List<Path>,
+        deletePngquantFile: Boolean,
+    ): List<Path> {
         return withContext(Dispatchers.IO) {
             val exePath = createExeFile()
             val createdFileList = filePathList.map {
@@ -31,12 +35,21 @@ class WindowsWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutine
             }.awaitAll()
 
             coroutineScope.launch(Dispatchers.IO) {
-//                filePathList.forEach { Files.deleteIfExists(it) }
+                if (deletePngquantFile) {
+                    filePathList.forEach { Files.deleteIfExists(it) }
+                }
                 delay(200)
                 Files.deleteIfExists(exePath)
             }
 
-            createdFileList
+            createdFileList.map { origin ->
+                origin.absolute().toString()
+                    .replace("-fs8.webp", ".webp")
+                    .let { Paths.get(it) }
+                    .also {
+                        Files.move(origin, it)
+                    }
+            }
         }
     }
 

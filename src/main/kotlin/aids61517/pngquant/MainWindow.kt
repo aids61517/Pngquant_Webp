@@ -3,15 +3,11 @@ package aids61517.pngquant
 
 import aids61517.pngquant.core.Application
 import aids61517.pngquant.core.BaseWindow
+import aids61517.pngquant.data.OSSource
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,43 +59,142 @@ class MainWindow : BaseWindow() {
         }
     }
 
+    enum class State {
+        IDLE,
+        PROCESSING_PNGQUANT,
+        PROCESSING_WEBP,
+        FINISHED,
+    }
+
     @Composable
     override fun ApplicationScope.setupWindow() {
         Window(
             onCloseRequest = ::exitApplication,
             title = "PngquantWebp",
             state = rememberWindowState(
-                width = 300.dp,
-                height = 200.dp,
+                width = 390.dp,
+                height = 250.dp,
             )
         ) {
             MaterialTheme {
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(10.dp)
+                Column(
+                    modifier = Modifier.padding(10.dp)
+                        .fillMaxHeight(),
                 ) {
-                    val coroutineScope = rememberCoroutineScope()
-                    Button(
-                        onClick = {
-                            chooseFile().let {
-                                coroutineScope.launch {
-                                    println("file path = $it")
-                                    val pngquantPathList = PngquantHelper.run(it)
-                                    println("pngquantPathList = $pngquantPathList")
-                                    WebpHelper.run(pngquantPathList)
-//                                    WebpHelper.run(it)
-                                    println("handle finish.")
-                                }
-                            }
-                        },
-                        border = BorderStroke(1.dp, Color.Magenta),
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                        contentPadding = PaddingValues(0.dp, 0.dp),
+                    var state by remember { mutableStateOf(State.IDLE) }
+                    var deleteOriginFile by remember { mutableStateOf(false) }
+                    var deletePngquantFile by remember { mutableStateOf(true) }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "選擇要轉換的檔案",
-                            modifier = Modifier.padding(horizontal = 10.dp),
+                            text = "狀態：",
+                            modifier = Modifier.padding(start = 10.dp),
                         )
+
+                        val stateText = when (state) {
+                            State.IDLE -> "閒置"
+                            State.PROCESSING_PNGQUANT -> "處理 Pngquant 中"
+                            State.PROCESSING_WEBP -> "處理 Webp 中"
+                            State.FINISHED -> "已完成"
+                        }
+
+                        Text(stateText)
+
+                        Row(
+                            horizontalArrangement = Arrangement.End,
+                            modifier = Modifier.fillMaxWidth()
+                                .offset(x = (-15).dp),
+                        ) {
+                            val coroutineScope = rememberCoroutineScope()
+                            Button(
+                                onClick = {
+                                    chooseFile()?.let {
+                                        coroutineScope.launch {
+                                            state = State.PROCESSING_PNGQUANT
+                                            println("file path = $it")
+                                            val pngquantPathList = PngquantHelper.run(
+                                                filePathList = it,
+                                                deleteOriginFile = deleteOriginFile,
+                                            )
+                                            println("pngquantPathList = $pngquantPathList")
+                                            state = State.PROCESSING_WEBP
+                                            WebpHelper.run(
+                                                filePathList = pngquantPathList,
+                                                deletePngquantFile = deletePngquantFile,
+                                            )
+                                            println("handle finish.")
+                                            state = State.FINISHED
+                                        }
+                                    }
+                                },
+                                border = BorderStroke(1.dp, Color.Magenta),
+                                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                                contentPadding = PaddingValues(0.dp, 0.dp),
+                                enabled = when (state) {
+                                    State.PROCESSING_PNGQUANT,
+                                    State.PROCESSING_WEBP -> false
+                                    else -> true
+                                },
+                            ) {
+                                Text(
+                                    text = "選擇要轉換的檔案",
+                                    modifier = Modifier.padding(horizontal = 10.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { deleteOriginFile = !deleteOriginFile }
+                            .padding(end = 10.dp)
+                    ) {
+                        Checkbox(
+                            checked = deleteOriginFile,
+                            onCheckedChange = { deleteOriginFile = it }
+                        )
+
+                        Text("刪除原始檔案")
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { deletePngquantFile = !deletePngquantFile }
+                            .padding(end = 10.dp)
+                    ) {
+                        Checkbox(
+                            checked = deletePngquantFile,
+                            onCheckedChange = { deletePngquantFile = it }
+                        )
+
+                        Text("刪除 Pngquant 產生的檔案")
+                    }
+
+                    if (OSSourceChecker.osSource == OSSource.MAC) {
+                        Row(
+                            verticalAlignment = Alignment.Bottom,
+                            modifier = Modifier.fillMaxHeight()
+                                .padding(10.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = "Mac 須先透過",
+                                )
+                                Text(
+                                    text = "brew install webp",
+                                    color = Color.Blue,
+                                    modifier = Modifier.offset(x = 5.dp),
+                                )
+                                Text(
+                                    text = "安裝",
+                                    modifier = Modifier.offset(x = 10.dp),
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -115,7 +210,7 @@ class MainWindow : BaseWindow() {
         }
     }
 
-    private fun chooseFile(): List<Path> {
+    private fun chooseFile(): List<Path>? {
         val fileChooser = JFileChooser().apply {
             fileFilter = FileNameExtensionFilter("*.png", "png")
             isMultiSelectionEnabled = true
@@ -129,7 +224,7 @@ class MainWindow : BaseWindow() {
             }
             else -> {
                 println("returnValue = $returnValue")
-                emptyList()
+                null
             }
         }
     }

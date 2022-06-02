@@ -1,12 +1,17 @@
 package aids61517.pngquant.webp
 
 import kotlinx.coroutines.*
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import kotlin.io.path.absolute
 
 class MacWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutineScope) {
 
-    override suspend fun run(filePathList: List<Path>): List<Path> {
+    override suspend fun run(
+        filePathList: List<Path>,
+        deletePngquantFile: Boolean,
+    ): List<Path> {
         return withContext(Dispatchers.IO) {
             val createdFileList = filePathList.map {
                 coroutineScope.async(Dispatchers.IO) {
@@ -16,10 +21,19 @@ class MacWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutineScop
             }.awaitAll()
 
             coroutineScope.launch(Dispatchers.IO) {
-//                filePathList.forEach { Files.deleteIfExists(it) }
+                if (deletePngquantFile) {
+                    filePathList.forEach { Files.deleteIfExists(it) }
+                }
             }
-
-            createdFileList
+            
+            createdFileList.map { origin ->
+                origin.absolute().toString()
+                    .replace("-fs8.webp", ".webp")
+                    .let { Paths.get(it) }
+                    .also {
+                        Files.move(origin, it)
+                    }
+            }
         }
     }
 
