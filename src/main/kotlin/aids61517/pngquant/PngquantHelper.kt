@@ -16,7 +16,10 @@ object PngquantHelper {
         CopyFileHandler.create(OSSourceChecker.osSource)
     }
 
-    suspend fun run(filePathList: List<Path>) = withContext(Dispatchers.IO) {
+    suspend fun run(
+        filePathList: List<Path>,
+        deleteOriginFile: Boolean,
+    ) = withContext(Dispatchers.IO) {
         val exePath = createExeFile()
         val createdFileList = filePathList.map {
             coroutineScope.async(Dispatchers.IO) {
@@ -26,6 +29,9 @@ object PngquantHelper {
         }.awaitAll()
 
         coroutineScope.launch(Dispatchers.IO) {
+            if (deleteOriginFile) {
+                filePathList.forEach { Files.deleteIfExists(it) }
+            }
             delay(200)
             Files.deleteIfExists(exePath)
         }

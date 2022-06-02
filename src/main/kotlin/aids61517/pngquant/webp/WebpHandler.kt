@@ -23,7 +23,10 @@ abstract class WebpHandler(protected val coroutineScope: CoroutineScope) {
         }
     }
 
-    abstract suspend fun run(filePathList: List<Path>): List<Path>
+    abstract suspend fun run(
+        filePathList: List<Path>,
+        deletePngquantFile: Boolean,
+    ): List<Path>
 
     protected suspend fun executeCmdAndGetImageCreated(cmd: Array<String>, filePath: Path): Path {
         return suspendCancellableCoroutine { continuation ->

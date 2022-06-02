@@ -20,7 +20,10 @@ object WebpHelper {
         WebpHandler.create(OSSourceChecker.osSource, coroutineScope)
     }
 
-    suspend fun run(filePathList: List<Path>) = withContext(Dispatchers.IO) {
-        webpHandler.run(filePathList)
+    suspend fun run(
+        filePathList: List<Path>,
+        deletePngquantFile: Boolean,
+    ) = withContext(Dispatchers.IO) {
+        webpHandler.run(filePathList, deletePngquantFile)
     }
 }
