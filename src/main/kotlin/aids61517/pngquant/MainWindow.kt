@@ -87,6 +87,8 @@ class MainWindow : BaseWindow() {
                                     val pngquantPathList = PngquantHelper.run(it)
                                     println("pngquantPathList = $pngquantPathList")
                                     WebpHelper.run(pngquantPathList)
+//                                    WebpHelper.run(it)
+                                    println("handle finish.")
                                 }
                             }
                         },

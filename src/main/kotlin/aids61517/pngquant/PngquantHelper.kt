@@ -1,25 +1,26 @@
 package aids61517.pngquant
 
+import aids61517.pngquant.data.ExePath
+import aids61517.pngquant.data.OSSource
+import aids61517.pngquant.util.CopyFileHandler
 import kotlinx.coroutines.*
-import okio.buffer
-import okio.sink
-import okio.source
 import java.nio.file.*
 import java.nio.file.StandardWatchEventKinds.*
 import kotlin.coroutines.resume
+import kotlin.io.path.absolute
 
 object PngquantHelper {
     val coroutineScope = CoroutineScope(SupervisorJob())
 
+    private val copyFileHandler by lazy {
+        CopyFileHandler.create(OSSourceChecker.osSource)
+    }
+
     suspend fun run(filePathList: List<Path>) = withContext(Dispatchers.IO) {
-        val osName = System.getProperty("os.name")
-            .lowercase()
-//        osName.startsWith("windows")
-        println("PngquantHelper run, osName = $osName")
         val exePath = createExeFile()
         val createdFileList = filePathList.map {
             coroutineScope.async(Dispatchers.IO) {
-                val cmd = String.format("%s \"%s\"", exePath.toString(), it.toString())
+                val cmd = createCmd(exePath, it)
                 executeCmdAndGetImageCreated(cmd, it)
             }
         }.awaitAll()
@@ -32,7 +33,7 @@ object PngquantHelper {
         createdFileList
     }
 
-    private suspend fun executeCmdAndGetImageCreated(cmd: String, filePath: Path): Path {
+    private suspend fun executeCmdAndGetImageCreated(cmd: Array<String>, filePath: Path): Path {
         return suspendCancellableCoroutine { continuation ->
             val directoryPath = filePath.parent
             val watcher = FileSystems.getDefault().newWatchService()
@@ -63,27 +64,32 @@ object PngquantHelper {
     }
 
     private fun createExeFile(): Path {
-        val exeFilePath = Paths.get("pngquant.exe")
-        javaClass.getResourceAsStream("/pngquant.exe")
-            ?.let {
-                println("PngquantHelper read file successfully")
-                if (Files.notExists(exeFilePath)) {
-                    Files.createFile(exeFilePath)
-                }
+        return copyFileHandler.execute(getExeSource(OSSourceChecker.osSource))
+    }
 
-                it.source()
-                    .buffer()
-                    .use { source ->
-                        Files.newOutputStream(exeFilePath)
-                            .sink()
-                            .buffer()
-                            .use { sink ->
-                                sink.writeAll(source)
-                                println("PngquantHelper create exe successfully, path = $exeFilePath")
-                            }
-                    }
-            }
+    private fun getExeSource(osSource: OSSource): ExePath {
+        return when (osSource) {
+            OSSource.WINDOWS -> ExePath(
+                source = "/windows/pngquant_2.17.0.exe",
+                targetPath = "pngquant_2.17.0.exe",
+            )
+            OSSource.MAC -> ExePath(
+                source = "/mac/pngquant_2.17.0",
+                targetPath = "pngquant",
+            )
+            else -> throw IllegalStateException("Unsupported OS")
+        }
+    }
 
-        return exeFilePath
+    private fun createCmd(exePath: Path, filePath: Path): Array<String> {
+        return when (OSSourceChecker.osSource) {
+            OSSource.WINDOWS -> arrayOf(exePath.toString(), filePath.toString())
+            OSSource.MAC -> arrayOf(
+                "/bin/sh",
+                "-c",
+                String.format("exec \"%s\" \"%s\"", exePath.absolute().toString(), filePath.toString()),
+            )
+            else -> throw IllegalStateException("Unsupported OS")
+        }
     }
 }
