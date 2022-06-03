@@ -28,7 +28,7 @@ abstract class CopyFileHandler {
         val exeFilePath = Paths.get(exePath.targetPath)
         javaClass.getResourceAsStream(exePath.source)
             ?.let {
-                println("CopyFileHandler read file successfully")
+                Logger.print("CopyFileHandler read file successfully")
                 if (Files.notExists(exeFilePath)) {
                     Files.createFile(exeFilePath)
                 }
@@ -41,7 +41,7 @@ abstract class CopyFileHandler {
                             .buffer()
                             .use { sink ->
                                 sink.writeAll(source)
-                                println("CopyFileHandler create exe successfully, path = $exeFilePath")
+                                Logger.print("CopyFileHandler create exe successfully, path = $exeFilePath")
                             }
                     }
             }

@@ -4,14 +4,22 @@ package aids61517.pngquant
 import aids61517.pngquant.core.Application
 import aids61517.pngquant.core.BaseWindow
 import aids61517.pngquant.data.OSSource
+import aids61517.pngquant.util.Logger
+import aids61517.pngquant.webp.MacWebpHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.*
 import kotlinx.coroutines.cancel
@@ -27,7 +35,7 @@ import javax.swing.JFileChooser
 import javax.swing.filechooser.FileNameExtensionFilter
 import kotlin.io.path.absolute
 
-class MainWindow : BaseWindow() {
+class MainWindow : BaseWindow(), LogPrinter {
     companion object {
         @JvmStatic
         fun main(vararg args: String) {
@@ -66,14 +74,22 @@ class MainWindow : BaseWindow() {
         FINISHED,
     }
 
+    private var logBuilder = StringBuilder()
+
+    private val logState = mutableStateOf("")
+
+    init {
+        Logger.init(this)
+    }
+
     @Composable
     override fun ApplicationScope.setupWindow() {
         Window(
             onCloseRequest = ::exitApplication,
             title = "PngquantWebp",
             state = rememberWindowState(
-                width = 390.dp,
-                height = 250.dp,
+                width = 1200.dp,
+                height = 1000.dp,
             )
         ) {
             MaterialTheme {
@@ -113,18 +129,18 @@ class MainWindow : BaseWindow() {
                                     chooseFile()?.let {
                                         coroutineScope.launch {
                                             state = State.PROCESSING_PNGQUANT
-                                            println("file path = $it")
+                                            print("file path = $it")
                                             val pngquantPathList = PngquantHelper.run(
                                                 filePathList = it,
                                                 deleteOriginFile = deleteOriginFile,
                                             )
-                                            println("pngquantPathList = $pngquantPathList")
+                                            print("pngquantPathList = $pngquantPathList")
                                             state = State.PROCESSING_WEBP
                                             WebpHelper.run(
                                                 filePathList = pngquantPathList,
                                                 deletePngquantFile = deletePngquantFile,
                                             )
-                                            println("handle finish.")
+                                            print("handle finish.")
                                             state = State.FINISHED
                                         }
                                     }
@@ -172,29 +188,37 @@ class MainWindow : BaseWindow() {
                         Text("刪除 Pngquant 產生的檔案")
                     }
 
-                    if (OSSourceChecker.osSource == OSSource.MAC) {
+                    if (OSSourceChecker.osSource == OSSource.MAC && Files.notExists(MacWebpHandler.CWEP_PATH)) {
                         Row(
-                            verticalAlignment = Alignment.Bottom,
-                            modifier = Modifier.fillMaxHeight()
-                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(10.dp),
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = "Mac 須先透過",
-                                )
-                                Text(
-                                    text = "brew install webp",
-                                    color = Color.Blue,
-                                    modifier = Modifier.offset(x = 5.dp),
-                                )
-                                Text(
-                                    text = "安裝",
-                                    modifier = Modifier.offset(x = 10.dp),
-                                )
-                            }
+                            Text(
+                                buildAnnotatedString {
+                                    append("Mac 須先透過 ")
+                                    withStyle(style = SpanStyle(color = Color.Blue)) {
+                                        append("brew install webp")
+                                    }
+                                    append(" 安裝")
+                                }
+                            )
                         }
+                    }
+
+                    Text(
+                        text = "以下為 log 區，可以 scroll",
+                        color = Color.Blue,
+                    )
+
+                    val logState by remember { logState }
+                    val scrollState = rememberScrollState(0)
+                    SelectionContainer {
+                        Text(
+                            text = logState,
+                            modifier = Modifier.fillMaxHeight()
+                                .verticalScroll(scrollState)
+                            ,
+                        )
                     }
                 }
 
@@ -210,6 +234,13 @@ class MainWindow : BaseWindow() {
         }
     }
 
+    override fun print(log: String) {
+        println(log)
+        logBuilder.append("\n")
+            .append(log)
+        logState.value = logBuilder.toString()
+    }
+
     private fun chooseFile(): List<Path>? {
         val fileChooser = JFileChooser().apply {
             fileFilter = FileNameExtensionFilter("*.png", "png")
@@ -218,12 +249,10 @@ class MainWindow : BaseWindow() {
         }
         return when (val returnValue = fileChooser.showOpenDialog(null)) {
             JFileChooser.APPROVE_OPTION -> {
-                println("returnValue = $returnValue")
                 fileChooser.selectedFiles
                     .map { Paths.get(it.absolutePath) }
             }
             else -> {
-                println("returnValue = $returnValue")
                 null
             }
         }

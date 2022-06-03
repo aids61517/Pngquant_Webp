@@ -1,8 +1,10 @@
 package aids61517.pngquant.webp
 
 import aids61517.pngquant.OSSourceChecker
+import aids61517.pngquant.WebpHelper
 import aids61517.pngquant.data.ExePath
 import aids61517.pngquant.util.CopyFileHandler
+import aids61517.pngquant.util.Logger
 import kotlinx.coroutines.*
 import java.nio.file.Files
 import java.nio.file.Path
@@ -54,7 +56,7 @@ class WindowsWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutine
     }
 
     private fun createExeFile(): Path {
-        println("WebpHelper createExeFile")
+        Logger.print("WebpHelper createExeFile")
         return copyFileHandler.execute(EXE_PATH)
     }
 
@@ -69,5 +71,9 @@ class WindowsWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutine
             "-o",
             outputFileName,
         )
+    }
+
+    override fun createCmdLog(cmd: Array<String>): String {
+        return cmd.joinToString(separator = " ")
     }
 }
