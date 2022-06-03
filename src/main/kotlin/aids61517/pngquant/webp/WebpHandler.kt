@@ -6,10 +6,7 @@ import kotlinx.coroutines.*
 import okio.buffer
 import okio.source
 import java.nio.charset.Charset
-import java.nio.file.FileSystems
-import java.nio.file.Path
-import java.nio.file.StandardWatchEventKinds
-import java.nio.file.WatchEvent
+import java.nio.file.*
 import kotlin.coroutines.resume
 
 abstract class WebpHandler(protected val coroutineScope: CoroutineScope) {
@@ -31,6 +28,11 @@ abstract class WebpHandler(protected val coroutineScope: CoroutineScope) {
     protected suspend fun executeCmdAndGetImageCreated(cmd: Array<String>, filePath: Path): Path {
         return suspendCancellableCoroutine { continuation ->
             val directoryPath = filePath.parent
+            val targetFileName = filePath.fileName.toString()
+                .replace(".png", ".webp")
+            val targetPath = directoryPath.resolve(targetFileName)
+            Files.deleteIfExists(targetPath)
+
             val watcher = FileSystems.getDefault().newWatchService()
             val watchKey = directoryPath.register(
                 watcher,
@@ -43,8 +45,6 @@ abstract class WebpHandler(protected val coroutineScope: CoroutineScope) {
 
             coroutineScope.launch(Dispatchers.IO) {
                 var doFind = true
-                val targetFileName = filePath.fileName.toString()
-                    .replace(".png", ".webp")
 
                 while (doFind) {
                     Logger.print("WebpHandler watcher do take")
