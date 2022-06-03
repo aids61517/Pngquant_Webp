@@ -33,7 +33,6 @@ object PngquantHelper {
             if (deleteOriginFile) {
                 filePathList.forEach { Files.deleteIfExists(it) }
             }
-            delay(200)
             Files.deleteIfExists(exePath)
         }
 
@@ -43,15 +42,19 @@ object PngquantHelper {
     private suspend fun executeCmdAndGetImageCreated(cmd: Array<String>, filePath: Path): Path {
         return suspendCancellableCoroutine { continuation ->
             val directoryPath = filePath.parent
+            val targetFileName = filePath.fileName.toString()
+                .replace(".png", "-fs8.png")
+            val targetPath = directoryPath.resolve(targetFileName)
+            Files.deleteIfExists(targetPath)
+
             val watcher = FileSystems.getDefault().newWatchService()
-            val watchKey = directoryPath.register(watcher, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE)
-            Runtime.getRuntime()
-                .exec(cmd)
+            val watchKey = directoryPath.register(watcher, ENTRY_CREATE, ENTRY_MODIFY)
+            val processBuilder = ProcessBuilder().apply {
+                command(*cmd)
+            }
+            val process = processBuilder.start()
 
             var doFind = true
-            val targetFileName = filePath.fileName.toString()
-                .replace(".png", "")
-                .let { String.format("%s-fs8.png", it) }
 
             while (doFind) {
                 val key = watcher.take()
@@ -63,6 +66,7 @@ object PngquantHelper {
                         val absolutePath = directoryPath.resolve(it.toString())
                         Logger.print("observeImageCreated path = $absolutePath")
                         watchKey.cancel()
+                        process.waitFor()
                         continuation.resume(absolutePath)
                         doFind = false
                     } ?: key.reset()

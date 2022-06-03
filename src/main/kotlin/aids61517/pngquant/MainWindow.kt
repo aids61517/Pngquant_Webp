@@ -100,6 +100,7 @@ class MainWindow : BaseWindow(), LogPrinter {
                     var state by remember { mutableStateOf(State.IDLE) }
                     var deleteOriginFile by remember { mutableStateOf(false) }
                     var deletePngquantFile by remember { mutableStateOf(true) }
+                    var skip9Patch by remember { mutableStateOf(true) }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -126,24 +127,25 @@ class MainWindow : BaseWindow(), LogPrinter {
                             val coroutineScope = rememberCoroutineScope()
                             Button(
                                 onClick = {
-                                    chooseFile()?.let {
-                                        coroutineScope.launch {
-                                            state = State.PROCESSING_PNGQUANT
-                                            print("file path = $it")
-                                            val pngquantPathList = PngquantHelper.run(
-                                                filePathList = it,
-                                                deleteOriginFile = deleteOriginFile,
-                                            )
-                                            print("pngquantPathList = $pngquantPathList")
-                                            state = State.PROCESSING_WEBP
-                                            WebpHelper.run(
-                                                filePathList = pngquantPathList,
-                                                deletePngquantFile = deletePngquantFile,
-                                            )
-                                            print("handle finish.")
-                                            state = State.FINISHED
+                                    chooseFile(skip9Patch)?.takeIf { it.isNotEmpty() }
+                                        ?.let {
+                                            coroutineScope.launch {
+                                                state = State.PROCESSING_PNGQUANT
+                                                print("file path = $it")
+                                                val pngquantPathList = PngquantHelper.run(
+                                                    filePathList = it,
+                                                    deleteOriginFile = deleteOriginFile,
+                                                )
+                                                print("pngquantPathList = $pngquantPathList")
+                                                state = State.PROCESSING_WEBP
+                                                WebpHelper.run(
+                                                    filePathList = pngquantPathList,
+                                                    deletePngquantFile = deletePngquantFile,
+                                                )
+                                                print("handle finish.")
+                                                state = State.FINISHED
+                                            }
                                         }
-                                    }
                                 },
                                 border = BorderStroke(1.dp, Color.Magenta),
                                 colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
@@ -164,28 +166,45 @@ class MainWindow : BaseWindow(), LogPrinter {
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { deleteOriginFile = !deleteOriginFile }
-                            .padding(end = 10.dp)
                     ) {
-                        Checkbox(
-                            checked = deleteOriginFile,
-                            onCheckedChange = { deleteOriginFile = it }
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { deleteOriginFile = !deleteOriginFile }
+                                .padding(end = 10.dp)
+                        ) {
+                            Checkbox(
+                                checked = deleteOriginFile,
+                                onCheckedChange = { deleteOriginFile = it }
+                            )
 
-                        Text("刪除原始檔案")
-                    }
+                            Text("刪除原始檔案")
+                        }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { deletePngquantFile = !deletePngquantFile }
-                            .padding(end = 10.dp)
-                    ) {
-                        Checkbox(
-                            checked = deletePngquantFile,
-                            onCheckedChange = { deletePngquantFile = it }
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { deletePngquantFile = !deletePngquantFile }
+                                .padding(end = 10.dp)
+                        ) {
+                            Checkbox(
+                                checked = deletePngquantFile,
+                                onCheckedChange = { deletePngquantFile = it }
+                            )
 
-                        Text("刪除 Pngquant 產生的檔案")
+                            Text("刪除 Pngquant 產生的檔案")
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { skip9Patch = !skip9Patch }
+                                .padding(end = 10.dp)
+                        ) {
+                            Checkbox(
+                                checked = skip9Patch,
+                                onCheckedChange = { skip9Patch = it }
+                            )
+
+                            Text("不處理 9 patch png")
+                        }
                     }
 
                     if (OSSourceChecker.osSource == OSSource.MAC && Files.notExists(MacWebpHandler.CWEP_PATH)) {
@@ -216,8 +235,7 @@ class MainWindow : BaseWindow(), LogPrinter {
                         Text(
                             text = logState,
                             modifier = Modifier.fillMaxHeight()
-                                .verticalScroll(scrollState)
-                            ,
+                                .verticalScroll(scrollState),
                         )
                     }
                 }
@@ -241,7 +259,7 @@ class MainWindow : BaseWindow(), LogPrinter {
         logState.value = logBuilder.toString()
     }
 
-    private fun chooseFile(): List<Path>? {
+    private fun chooseFile(skip9patch: Boolean): List<Path>? {
         val fileChooser = JFileChooser().apply {
             fileFilter = FileNameExtensionFilter("*.png", "png")
             isMultiSelectionEnabled = true
@@ -251,6 +269,13 @@ class MainWindow : BaseWindow(), LogPrinter {
             JFileChooser.APPROVE_OPTION -> {
                 fileChooser.selectedFiles
                     .map { Paths.get(it.absolutePath) }
+                    .filter {
+                        if (skip9patch) {
+                            it.fileName.toString().endsWith(".9.png").not()
+                        } else {
+                            true
+                        }
+                    }
             }
             else -> {
                 null
