@@ -1,8 +1,8 @@
 package aids61517.pngquant.webp
 
 import aids61517.pngquant.data.OSSource
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.suspendCancellableCoroutine
+import aids61517.pngquant.util.Logger
+import kotlinx.coroutines.*
 import okio.buffer
 import okio.source
 import java.nio.charset.Charset
@@ -36,36 +36,55 @@ abstract class WebpHandler(protected val coroutineScope: CoroutineScope) {
                 watcher,
                 StandardWatchEventKinds.ENTRY_CREATE,
             )
-            println("cmd = ${cmd.last()}")
-            val process = Runtime.getRuntime()
-                .exec(cmd)
 
-            var doFind = true
-            val targetFileName = filePath.fileName.toString()
-                .replace(".png", ".webp")
+            Logger.print("cmd = ${createCmdLog(cmd)}")
+            val processBuilder = ProcessBuilder()
+            lateinit var process: Process
 
-            while (doFind) {
-                val key = watcher.take()
-                key.pollEvents()
-                    .filter { it.kind() != StandardWatchEventKinds.OVERFLOW }
-                    .map { (it as WatchEvent<Path>).context() }
-                    .find { it.fileName.toString() == targetFileName }
-                    ?.let {
-                        val absolutePath = directoryPath.resolve(it.toString())
-                        println("WebpHandler observeImageCreated path = $absolutePath")
-                        watchKey.cancel()
-                        process.inputStream
-                            .source()
-                            .buffer()
-                            .use {
-                                while (it.exhausted().not()) {
-                                    println(it.readString(Charset.defaultCharset()))
-                                }
-                            }
-                        continuation.resume(absolutePath)
-                        doFind = false
-                    } ?: key.reset()
+            coroutineScope.launch(Dispatchers.IO) {
+                var doFind = true
+                val targetFileName = filePath.fileName.toString()
+                    .replace(".png", ".webp")
+
+                while (doFind) {
+                    Logger.print("WebpHandler watcher do take")
+                    val key = watcher.take()
+                    key.pollEvents()
+                        .filter { it.kind() != StandardWatchEventKinds.OVERFLOW }
+                        .map { (it as WatchEvent<Path>).context() }
+                        .find {
+                            Logger.print("WebpHandler take ${it.toAbsolutePath()}")
+                            it.fileName.toString() == targetFileName
+                        }
+                        ?.let {
+                            val absolutePath = directoryPath.resolve(it.toString())
+                            Logger.print("WebpHandler observeImageCreated path = $absolutePath")
+                            watchKey.cancel()
+                            process.waitFor()
+                            continuation.resume(absolutePath)
+                            doFind = false
+                        } ?: key.reset()
+                }
             }
+
+            Logger.print("WebpHandler execute cmd")
+            process = processBuilder.command(*cmd)
+                .start()
+
+            process.inputStream
+                .source()
+                .buffer()
+                .use {
+                    while (it.exhausted().not()) {
+                        Logger.print("WebpHandler process ${it.readString(Charset.defaultCharset())}")
+                    }
+                    Logger.print("WebpHandler process exhausted")
+                }
+
+            val exit = process.waitFor()
+            Logger.print("WebpHandler process finish $exit")
         }
     }
+
+    abstract fun createCmdLog(cmd: Array<String>): String
 }

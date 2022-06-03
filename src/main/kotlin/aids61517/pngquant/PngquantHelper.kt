@@ -3,6 +3,7 @@ package aids61517.pngquant
 import aids61517.pngquant.data.ExePath
 import aids61517.pngquant.data.OSSource
 import aids61517.pngquant.util.CopyFileHandler
+import aids61517.pngquant.util.Logger
 import kotlinx.coroutines.*
 import java.nio.file.*
 import java.nio.file.StandardWatchEventKinds.*
@@ -60,7 +61,7 @@ object PngquantHelper {
                     .find { it.fileName.toString() == targetFileName }
                     ?.let {
                         val absolutePath = directoryPath.resolve(it.toString())
-                        println("observeImageCreated path = $absolutePath")
+                        Logger.print("observeImageCreated path = $absolutePath")
                         watchKey.cancel()
                         continuation.resume(absolutePath)
                         doFind = false

@@ -7,6 +7,16 @@ import java.nio.file.Paths
 import kotlin.io.path.absolute
 
 class MacWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutineScope) {
+    companion object {
+        val CWEP_PATH = Paths.get("/usr/local/Cellar/webp/")
+            .takeIf { Files.exists(it) }
+            ?.let {
+                Files.newDirectoryStream(it)
+                    .first()
+                    .resolve("bin")
+                    .resolve("cwebp")
+            }
+    }
 
     override suspend fun run(
         filePathList: List<Path>,
@@ -25,7 +35,7 @@ class MacWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutineScop
                     filePathList.forEach { Files.deleteIfExists(it) }
                 }
             }
-            
+
             createdFileList.map { origin ->
                 origin.absolute().toString()
                     .replace("-fs8.webp", ".webp")
@@ -45,10 +55,15 @@ class MacWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutineScop
             "/bin/sh",
             "-c",
             String.format(
-                "cwebp -lossless \"%s\" -o \"%s\"",
+                "\"%s\" -lossless \"%s\" -o \"%s\"",
+                CWEP_PATH!!.absolute().toString(),
                 filePath.absolute().toString(),
                 outputFileName,
             ),
         )
+    }
+
+    override fun createCmdLog(cmd: Array<String>): String {
+        return cmd.last()
     }
 }
