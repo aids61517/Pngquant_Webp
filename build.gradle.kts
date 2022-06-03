@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "aids61517.pngquant"
-version = "1.0"
+version = "1.0.0"
 
 repositories {
     google()
