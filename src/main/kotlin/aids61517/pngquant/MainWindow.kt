@@ -78,6 +78,8 @@ class MainWindow : BaseWindow(), LogPrinter {
 
     private val logState = mutableStateOf("")
 
+    private var lastChooseDirectoryPath: Path? = null
+
     init {
         Logger.init(this)
     }
@@ -129,6 +131,8 @@ class MainWindow : BaseWindow(), LogPrinter {
                                 onClick = {
                                     chooseFile(skip9Patch)?.takeIf { it.isNotEmpty() }
                                         ?.let {
+                                            lastChooseDirectoryPath = it.first()
+                                                .parent
                                             coroutineScope.launch {
                                                 state = State.PROCESSING_PNGQUANT
                                                 print("file path = $it")
@@ -263,7 +267,7 @@ class MainWindow : BaseWindow(), LogPrinter {
         val fileChooser = JFileChooser().apply {
             fileFilter = FileNameExtensionFilter("*.png", "png")
             isMultiSelectionEnabled = true
-            currentDirectory = File(Paths.get("").absolute().toString())
+            currentDirectory = lastChooseDirectoryPath?.toFile() ?: File(Paths.get("").absolute().toString())
         }
         return when (val returnValue = fileChooser.showOpenDialog(null)) {
             JFileChooser.APPROVE_OPTION -> {
