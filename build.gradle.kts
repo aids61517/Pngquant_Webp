@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "aids61517.pngquant"
-version = "1.0.1"
+version = "1.0.2"
 
 repositories {
     google()
@@ -21,7 +21,7 @@ sourceSets {
 }
 
 dependencies {
-    implementation(compose.desktop.windows_x64)
+    implementation(compose.desktop.currentOs)
 
     implementation("com.squareup.okio:okio:3.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
@@ -37,7 +37,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "PngquantToWebp"
-            packageVersion = "1.0.1"
+            packageVersion = "1.0.2"
         }
     }
 }
