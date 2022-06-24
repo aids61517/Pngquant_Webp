@@ -23,6 +23,9 @@ class WindowsWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutine
         CopyFileHandler.create(OSSourceChecker.osSource)
     }
 
+    override val isWebpAvailable: Boolean
+        get() = true
+
     override suspend fun run(
         filePathList: List<Path>,
         deletePngquantFile: Boolean,
