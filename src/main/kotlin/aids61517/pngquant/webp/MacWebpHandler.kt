@@ -50,6 +50,7 @@ class MacWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutineScop
                     .replace("-fs8.webp", ".webp")
                     .let { Paths.get(it) }
                     .also {
+                        Files.deleteIfExists(it)
                         Files.move(origin, it)
                     }
             }

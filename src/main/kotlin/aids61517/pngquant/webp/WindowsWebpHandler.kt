@@ -52,6 +52,7 @@ class WindowsWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutine
                     .replace("-fs8.webp", ".webp")
                     .let { Paths.get(it) }
                     .also {
+                        Files.deleteIfExists(it)
                         Files.move(origin, it)
                     }
             }
