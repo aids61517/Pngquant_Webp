@@ -72,6 +72,7 @@ class MainWindow : BaseWindow(), LogPrinter {
         PROCESSING_PNGQUANT,
         PROCESSING_WEBP,
         FINISHED,
+        WEBP_UNAVAILABLE,
     }
 
     private var logBuilder = StringBuilder()
@@ -99,7 +100,11 @@ class MainWindow : BaseWindow(), LogPrinter {
                     modifier = Modifier.padding(10.dp)
                         .fillMaxHeight(),
                 ) {
-                    var state by remember { mutableStateOf(State.IDLE) }
+
+                    var state by remember {
+                        val state = if (WebpHelper.isWebpAvailable) State.IDLE else State.WEBP_UNAVAILABLE
+                        mutableStateOf(state)
+                    }
                     var deleteOriginFile by remember { mutableStateOf(false) }
                     var deletePngquantFile by remember { mutableStateOf(true) }
                     var skip9Patch by remember { mutableStateOf(true) }
@@ -117,9 +122,18 @@ class MainWindow : BaseWindow(), LogPrinter {
                             State.PROCESSING_PNGQUANT -> "處理 Pngquant 中"
                             State.PROCESSING_WEBP -> "處理 Webp 中"
                             State.FINISHED -> "已完成"
+                            State.WEBP_UNAVAILABLE -> "webp 無法使用"
                         }
 
-                        Text(stateText)
+                        val stateColor = if (state == State.WEBP_UNAVAILABLE) {
+                            Color.Red
+                        } else {
+                            Color.Unspecified
+                        }
+                        Text(
+                            text = stateText,
+                            color =  stateColor,
+                        )
 
                         Row(
                             horizontalArrangement = Arrangement.End,
@@ -156,7 +170,8 @@ class MainWindow : BaseWindow(), LogPrinter {
                                 contentPadding = PaddingValues(0.dp, 0.dp),
                                 enabled = when (state) {
                                     State.PROCESSING_PNGQUANT,
-                                    State.PROCESSING_WEBP -> false
+                                    State.PROCESSING_WEBP,
+                                    State.WEBP_UNAVAILABLE -> false
                                     else -> true
                                 },
                             ) {
@@ -211,7 +226,7 @@ class MainWindow : BaseWindow(), LogPrinter {
                         }
                     }
 
-                    if (OSSourceChecker.osSource == OSSource.MAC && (MacWebpHandler.CWEP_PATH == null)) {
+                    if (OSSourceChecker.osSource == OSSource.MAC && WebpHelper.isWebpAvailable.not()) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(10.dp),

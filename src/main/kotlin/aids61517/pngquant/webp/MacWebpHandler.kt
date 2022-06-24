@@ -24,6 +24,9 @@ class MacWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutineScop
         )
     }
 
+    override val isWebpAvailable: Boolean
+        get() = CWEP_PATH != null
+    
     override suspend fun run(
         filePathList: List<Path>,
         deletePngquantFile: Boolean,

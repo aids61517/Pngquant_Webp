@@ -14,6 +14,9 @@ object WebpHelper {
         WebpHandler.create(OSSourceChecker.osSource, coroutineScope)
     }
 
+    val isWebpAvailable: Boolean
+        get() = webpHandler.isWebpAvailable
+
     suspend fun run(
         filePathList: List<Path>,
         deletePngquantFile: Boolean,
