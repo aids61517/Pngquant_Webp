@@ -8,16 +8,25 @@ import kotlin.io.path.absolute
 
 class MacWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutineScope) {
     companion object {
-        val CWEP_PATH = Paths.get("/usr/local/Cellar/webp/")
-            .takeIf { Files.exists(it) }
-            ?.let {
-                Files.newDirectoryStream(it)
-                    .first()
-                    .resolve("bin")
-                    .resolve("cwebp")
-            }
+        val CWEP_PATH: Path?
+            get() = cwebpPathList.map { Paths.get(it) }
+                .find { Files.exists(it) }
+                ?.let {
+                    Files.newDirectoryStream(it)
+                        .first()
+                        .resolve("bin")
+                        .resolve("cwebp")
+                }
+
+        private val cwebpPathList = listOf(
+            "/usr/local/Cellar/webp/",
+            "/opt/homebrew/Cellar/webp/",
+        )
     }
 
+    override val isWebpAvailable: Boolean
+        get() = CWEP_PATH != null
+    
     override suspend fun run(
         filePathList: List<Path>,
         deletePngquantFile: Boolean,
@@ -41,6 +50,7 @@ class MacWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutineScop
                     .replace("-fs8.webp", ".webp")
                     .let { Paths.get(it) }
                     .also {
+                        Files.deleteIfExists(it)
                         Files.move(origin, it)
                     }
             }

@@ -20,6 +20,8 @@ abstract class WebpHandler(protected val coroutineScope: CoroutineScope) {
         }
     }
 
+    abstract val isWebpAvailable: Boolean
+
     abstract suspend fun run(
         filePathList: List<Path>,
         deletePngquantFile: Boolean,
