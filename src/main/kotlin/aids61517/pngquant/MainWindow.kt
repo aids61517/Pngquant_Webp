@@ -211,7 +211,7 @@ class MainWindow : BaseWindow(), LogPrinter {
                         }
                     }
 
-                    if (OSSourceChecker.osSource == OSSource.MAC && Files.notExists(MacWebpHandler.CWEP_PATH)) {
+                    if (OSSourceChecker.osSource == OSSource.MAC && (MacWebpHandler.CWEP_PATH == null)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.padding(10.dp),
