@@ -21,7 +21,7 @@ sourceSets {
 }
 
 dependencies {
-    implementation(compose.desktop.windows_x64)
+    implementation(compose.desktop.currentOs)
 
     implementation("com.squareup.okio:okio:3.1.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
