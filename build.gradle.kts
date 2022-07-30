@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "aids61517.pngquant"
-version = "1.0.2"
+version = "1.1.0"
 
 repositories {
     google()
@@ -21,6 +21,8 @@ sourceSets {
 }
 
 dependencies {
+    implementation(project("native"))
+
     implementation(compose.desktop.currentOs)
 
     implementation("com.squareup.okio:okio:3.1.0")
@@ -35,9 +37,9 @@ compose.desktop {
     application {
         mainClass = "aids61517.pngquant.MainWindow"
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
             packageName = "PngquantToWebp"
-            packageVersion = "1.0.2"
+            packageVersion = "1.1.0"
         }
     }
 }

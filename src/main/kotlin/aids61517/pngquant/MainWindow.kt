@@ -25,6 +25,7 @@ import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import greeting.Greeting
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -275,8 +276,9 @@ class MainWindow : BaseWindow(), LogPrinter {
                                 .verticalScroll(scrollState),
                         )
                     }
-                }
 
+                    Logger.print(Greeting().greeting())
+                }
 
                 DisposableEffect(Unit) {
                     this.onDispose {
