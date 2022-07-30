@@ -2,7 +2,7 @@ package aids61517.pngquant
 
 import aids61517.pngquant.data.ExePath
 import aids61517.pngquant.data.OSSource
-import aids61517.pngquant.util.CopyFileHandler
+import aids61517.pngquant.util.copy.CopyFileHandler
 import aids61517.pngquant.util.Logger
 import kotlinx.coroutines.*
 import java.nio.file.*

@@ -4,8 +4,8 @@ package aids61517.pngquant
 import aids61517.pngquant.core.Application
 import aids61517.pngquant.core.BaseWindow
 import aids61517.pngquant.data.OSSource
+import aids61517.pngquant.util.AndroidResizeHandler
 import aids61517.pngquant.util.Logger
-import aids61517.pngquant.webp.MacWebpHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -21,7 +21,11 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.*
+import androidx.compose.ui.window.ApplicationScope
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import okio.buffer
@@ -69,6 +73,7 @@ class MainWindow : BaseWindow(), LogPrinter {
 
     enum class State {
         IDLE,
+        PROCESSING_RESIZE_FOR_ANDROID,
         PROCESSING_PNGQUANT,
         PROCESSING_WEBP,
         FINISHED,
@@ -108,6 +113,7 @@ class MainWindow : BaseWindow(), LogPrinter {
                     var deleteOriginFile by remember { mutableStateOf(false) }
                     var deletePngquantFile by remember { mutableStateOf(true) }
                     var skip9Patch by remember { mutableStateOf(true) }
+                    var resizeForAndroid by remember { mutableStateOf(true) }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -119,8 +125,9 @@ class MainWindow : BaseWindow(), LogPrinter {
 
                         val stateText = when (state) {
                             State.IDLE -> "閒置"
-                            State.PROCESSING_PNGQUANT -> "處理 Pngquant 中"
-                            State.PROCESSING_WEBP -> "處理 Webp 中"
+                            State.PROCESSING_RESIZE_FOR_ANDROID -> "多尺寸處理中"
+                            State.PROCESSING_PNGQUANT -> "Pngquant 處理中"
+                            State.PROCESSING_WEBP -> "Webp 處理中"
                             State.FINISHED -> "已完成"
                             State.WEBP_UNAVAILABLE -> "webp 無法使用"
                         }
@@ -132,7 +139,7 @@ class MainWindow : BaseWindow(), LogPrinter {
                         }
                         Text(
                             text = stateText,
-                            color =  stateColor,
+                            color = stateColor,
                         )
 
                         Row(
@@ -148,18 +155,16 @@ class MainWindow : BaseWindow(), LogPrinter {
                                             lastChooseDirectoryPath = it.first()
                                                 .parent
                                             coroutineScope.launch {
+                                                val resizePathList = if (resizeForAndroid) {
+                                                    state = State.PROCESSING_RESIZE_FOR_ANDROID
+                                                    handleResizeForAndroid(it, coroutineScope)
+                                                } else {
+                                                    it
+                                                }
                                                 state = State.PROCESSING_PNGQUANT
-                                                print("file path = $it")
-                                                val pngquantPathList = PngquantHelper.run(
-                                                    filePathList = it,
-                                                    deleteOriginFile = deleteOriginFile,
-                                                )
-                                                print("pngquantPathList = $pngquantPathList")
+                                                val pngquantPathList = handlePngquant(resizePathList, deleteOriginFile)
                                                 state = State.PROCESSING_WEBP
-                                                WebpHelper.run(
-                                                    filePathList = pngquantPathList,
-                                                    deletePngquantFile = deletePngquantFile,
-                                                )
+                                                handleWebp(pngquantPathList, deletePngquantFile)
                                                 print("handle finish.")
                                                 state = State.FINISHED
                                             }
@@ -224,6 +229,19 @@ class MainWindow : BaseWindow(), LogPrinter {
 
                             Text("不處理 9 patch png")
                         }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { resizeForAndroid = !resizeForAndroid }
+                                .padding(end = 10.dp)
+                        ) {
+                            Checkbox(
+                                checked = resizeForAndroid,
+                                onCheckedChange = { resizeForAndroid = it }
+                            )
+
+                            Text("產出 Android 的各尺寸圖(請選擇 4 倍圖)")
+                        }
                     }
 
                     if (OSSourceChecker.osSource == OSSource.MAC && WebpHelper.isWebpAvailable.not()) {
@@ -269,6 +287,39 @@ class MainWindow : BaseWindow(), LogPrinter {
                 }
             }
         }
+    }
+
+    private suspend fun handleResizeForAndroid(
+        filePathList: List<Path>,
+        coroutineScope: CoroutineScope,
+    ): List<Path> {
+        print("file path = $filePathList")
+        return AndroidResizeHandler.run(
+            filePathList = filePathList,
+            coroutineScope = coroutineScope,
+        ).also { print("resizePathList = $it") }
+    }
+
+    private suspend fun handlePngquant(
+        filePathList: List<Path>,
+        deleteOriginFile: Boolean,
+    ): List<Path> {
+        print("file path = $filePathList")
+        return PngquantHelper.run(
+            filePathList = filePathList,
+            deleteOriginFile = deleteOriginFile,
+        ).also { print("pngquantPathList = $it") }
+    }
+
+    private suspend fun handleWebp(
+        filePathList: List<Path>,
+        deletePngquantFile: Boolean,
+    ): List<Path> {
+        print("file path = $filePathList")
+        return WebpHelper.run(
+            filePathList = filePathList,
+            deletePngquantFile = deletePngquantFile,
+        )
     }
 
     override fun print(log: String) {

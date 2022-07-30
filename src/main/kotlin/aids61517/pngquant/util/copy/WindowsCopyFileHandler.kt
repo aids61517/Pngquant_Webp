@@ -1,4 +1,4 @@
-package aids61517.pngquant.util
+package aids61517.pngquant.util.copy
 
 import aids61517.pngquant.data.ExePath
 import java.nio.file.Path

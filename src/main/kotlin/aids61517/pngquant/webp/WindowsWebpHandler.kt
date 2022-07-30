@@ -1,9 +1,8 @@
 package aids61517.pngquant.webp
 
 import aids61517.pngquant.OSSourceChecker
-import aids61517.pngquant.WebpHelper
 import aids61517.pngquant.data.ExePath
-import aids61517.pngquant.util.CopyFileHandler
+import aids61517.pngquant.util.copy.CopyFileHandler
 import aids61517.pngquant.util.Logger
 import kotlinx.coroutines.*
 import java.nio.file.Files
