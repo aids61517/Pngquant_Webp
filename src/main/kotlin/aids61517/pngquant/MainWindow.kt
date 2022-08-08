@@ -118,7 +118,7 @@ class MainWindow : BaseWindow(), LogPrinter {
                             value = if (WebpHelper.isWebpAvailable) State.IDLE else State.WEBP_UNAVAILABLE
                         }
                     }
-                    var deleteOriginFile by remember { mutableStateOf(false) }
+                    var deleteOriginFile by remember { mutableStateOf(true) }
                     var deletePngquantFile by remember { mutableStateOf(true) }
                     var skip9Patch by remember { mutableStateOf(true) }
                     var resizeForAndroid by remember { mutableStateOf(true) }

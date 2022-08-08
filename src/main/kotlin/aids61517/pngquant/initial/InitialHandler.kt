@@ -7,6 +7,7 @@ import androidx.compose.runtime.MutableState
 import kotlinx.coroutines.CoroutineScope
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.internal.closeQuietly
 import okio.buffer
 import okio.sink
 import okio.source
@@ -84,6 +85,7 @@ abstract class InitialHandler {
                                 }
                         }
                 }
+                close()
             }
         } catch (e: IOException) {
             e.printStackTrace()
