@@ -23,8 +23,11 @@ sourceSets {
 dependencies {
     implementation(compose.desktop.currentOs)
 
-    implementation("com.squareup.okio:okio:3.1.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+
+    implementation("com.squareup.okio:okio:3.2.0")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
 }
 
 tasks.withType<KotlinCompile> {

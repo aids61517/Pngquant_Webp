@@ -30,6 +30,7 @@ class MacWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutineScop
     override suspend fun run(
         filePathList: List<Path>,
         deletePngquantFile: Boolean,
+        webpExePath: Path?,
     ): List<Path> {
         return withContext(Dispatchers.IO) {
             val createdFileList = filePathList.map {

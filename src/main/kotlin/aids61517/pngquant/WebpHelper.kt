@@ -20,7 +20,8 @@ object WebpHelper {
     suspend fun run(
         filePathList: List<Path>,
         deletePngquantFile: Boolean,
+        webpExePath: Path?,
     ) = withContext(Dispatchers.IO) {
-        webpHandler.run(filePathList, deletePngquantFile)
+        webpHandler.run(filePathList, deletePngquantFile, webpExePath)
     }
 }
