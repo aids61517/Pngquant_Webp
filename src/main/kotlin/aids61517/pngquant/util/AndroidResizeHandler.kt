@@ -48,7 +48,7 @@ object AndroidResizeHandler {
                     doResize(
                         originFilePath = filePath,
                         directoryPath = directoryPath,
-                        androidDirectoryName = "drawable-xdpi",
+                        androidDirectoryName = "drawable-xhdpi",
                         ratio = 2.0,
                         coroutineScope = coroutineScope,
                     )
@@ -58,7 +58,7 @@ object AndroidResizeHandler {
                     doResize(
                         originFilePath = filePath,
                         directoryPath = directoryPath,
-                        androidDirectoryName = "drawable-xxdpi",
+                        androidDirectoryName = "drawable-xxhdpi",
                         ratio = 3.0,
                         coroutineScope = coroutineScope,
                     )
@@ -68,7 +68,7 @@ object AndroidResizeHandler {
                     doResize(
                         originFilePath = filePath,
                         directoryPath = directoryPath,
-                        androidDirectoryName = "drawable-xxxdpi",
+                        androidDirectoryName = "drawable-xxxhdpi",
                         ratio = 4.0,
                         coroutineScope = coroutineScope,
                     )
