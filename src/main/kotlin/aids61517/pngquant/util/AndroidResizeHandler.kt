@@ -98,7 +98,11 @@ object AndroidResizeHandler {
             val targetHeight = ceil(scaleRatio * inputImage.height).toInt()
             val scaledImage = inputImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_DEFAULT)
 
-            val outputImage = BufferedImage(targetWidth, targetHeight, inputImage.type).apply {
+            val imageType = when (inputImage.type) {
+                BufferedImage.TYPE_BYTE_INDEXED -> BufferedImage.TYPE_4BYTE_ABGR
+                else -> inputImage.type
+            }
+            val outputImage = BufferedImage(targetWidth, targetHeight, imageType).apply {
                 createGraphics().apply {
                     drawImage(scaledImage, 0, 0, targetWidth, targetHeight, null)
                     dispose()
