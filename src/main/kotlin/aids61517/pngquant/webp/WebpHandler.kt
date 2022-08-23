@@ -25,6 +25,7 @@ abstract class WebpHandler(protected val coroutineScope: CoroutineScope) {
     abstract suspend fun run(
         filePathList: List<Path>,
         deletePngquantFile: Boolean,
+        webpExePath: Path?,
     ): List<Path>
 
     protected suspend fun executeCmdAndGetImageCreated(cmd: Array<String>, filePath: Path): Path {

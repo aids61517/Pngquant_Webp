@@ -4,6 +4,7 @@ package aids61517.pngquant
 import aids61517.pngquant.core.Application
 import aids61517.pngquant.core.BaseWindow
 import aids61517.pngquant.data.OSSource
+import aids61517.pngquant.initial.InitialHandler
 import aids61517.pngquant.util.AndroidResizeHandler
 import aids61517.pngquant.util.Logger
 import androidx.compose.foundation.BorderStroke
@@ -73,6 +74,7 @@ class MainWindow : BaseWindow(), LogPrinter {
 
     enum class State {
         IDLE,
+        INITIAL,
         PROCESSING_RESIZE_FOR_ANDROID,
         PROCESSING_PNGQUANT,
         PROCESSING_WEBP,
@@ -80,9 +82,15 @@ class MainWindow : BaseWindow(), LogPrinter {
         WEBP_UNAVAILABLE,
     }
 
-    private var logBuilder = StringBuilder()
-
     private val logState = mutableStateOf("")
+
+    private val appState = mutableStateOf<State>(State.IDLE)
+
+    private val isInitialize = mutableStateOf(false)
+
+    private val initialHandler by lazy { InitialHandler.create(OSSourceChecker.osSource) }
+
+    private var logBuilder = StringBuilder()
 
     private var lastChooseDirectoryPath: Path? = null
 
@@ -105,15 +113,21 @@ class MainWindow : BaseWindow(), LogPrinter {
                     modifier = Modifier.padding(10.dp)
                         .fillMaxHeight(),
                 ) {
-
                     var state by remember {
-                        val state = if (WebpHelper.isWebpAvailable) State.IDLE else State.WEBP_UNAVAILABLE
-                        mutableStateOf(state)
+                        appState.apply {
+                            value = if (WebpHelper.isWebpAvailable) State.IDLE else State.WEBP_UNAVAILABLE
+                        }
                     }
-                    var deleteOriginFile by remember { mutableStateOf(false) }
+                    var deleteOriginFile by remember { mutableStateOf(true) }
                     var deletePngquantFile by remember { mutableStateOf(true) }
                     var skip9Patch by remember { mutableStateOf(true) }
-                    var resizeForAndroid by remember { mutableStateOf(true) }
+                    var resizePngForAndroid by remember { mutableStateOf(true) }
+                    val isInitialize by remember { isInitialize }
+                    val coroutineScope = rememberCoroutineScope()
+
+                    if (isInitialize.not()) {
+                        initialize(coroutineScope)
+                    }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -125,6 +139,7 @@ class MainWindow : BaseWindow(), LogPrinter {
 
                         val stateText = when (state) {
                             State.IDLE -> "閒置"
+                            State.INITIAL -> "正在下載所需檔案"
                             State.PROCESSING_RESIZE_FOR_ANDROID -> "多尺寸處理中"
                             State.PROCESSING_PNGQUANT -> "Pngquant 處理中"
                             State.PROCESSING_WEBP -> "Webp 處理中"
@@ -147,7 +162,6 @@ class MainWindow : BaseWindow(), LogPrinter {
                             modifier = Modifier.fillMaxWidth()
                                 .offset(x = (-15).dp),
                         ) {
-                            val coroutineScope = rememberCoroutineScope()
                             Button(
                                 onClick = {
                                     chooseFile(skip9Patch)?.takeIf { it.isNotEmpty() }
@@ -155,12 +169,9 @@ class MainWindow : BaseWindow(), LogPrinter {
                                             lastChooseDirectoryPath = it.first()
                                                 .parent
                                             coroutineScope.launch {
-                                                val resizePathList = if (resizeForAndroid) {
-                                                    state = State.PROCESSING_RESIZE_FOR_ANDROID
-                                                    handleResizeForAndroid(it, coroutineScope)
-                                                } else {
-                                                    it
-                                                }
+                                                state = State.PROCESSING_RESIZE_FOR_ANDROID
+                                                val resizePathList =
+                                                    handleResizeForAndroid(it, resizePngForAndroid, coroutineScope)
                                                 state = State.PROCESSING_PNGQUANT
                                                 val pngquantPathList = handlePngquant(resizePathList, deleteOriginFile)
                                                 state = State.PROCESSING_WEBP
@@ -174,6 +185,7 @@ class MainWindow : BaseWindow(), LogPrinter {
                                 colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
                                 contentPadding = PaddingValues(0.dp, 0.dp),
                                 enabled = when (state) {
+                                    State.INITIAL,
                                     State.PROCESSING_PNGQUANT,
                                     State.PROCESSING_WEBP,
                                     State.WEBP_UNAVAILABLE -> false
@@ -201,7 +213,7 @@ class MainWindow : BaseWindow(), LogPrinter {
                                 onCheckedChange = { deleteOriginFile = it }
                             )
 
-                            Text("刪除原始檔案")
+                            Text("刪除原始檔案或 Android 多尺寸 Png")
                         }
 
                         Row(
@@ -232,12 +244,12 @@ class MainWindow : BaseWindow(), LogPrinter {
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { resizeForAndroid = !resizeForAndroid }
+                            modifier = Modifier.clickable { resizePngForAndroid = !resizePngForAndroid }
                                 .padding(end = 10.dp)
                         ) {
                             Checkbox(
-                                checked = resizeForAndroid,
-                                onCheckedChange = { resizeForAndroid = it }
+                                checked = resizePngForAndroid,
+                                onCheckedChange = { resizePngForAndroid = it }
                             )
 
                             Text("產出 Android 的各尺寸圖(請選擇 4 倍圖)")
@@ -277,7 +289,6 @@ class MainWindow : BaseWindow(), LogPrinter {
                     }
                 }
 
-
                 DisposableEffect(Unit) {
                     this.onDispose {
                         println("onDispose")
@@ -289,13 +300,21 @@ class MainWindow : BaseWindow(), LogPrinter {
         }
     }
 
+    private fun initialize(coroutineScope: CoroutineScope) {
+        if (appState.value != State.IDLE && isInitialize.value) return
+        isInitialize.value = true
+        initialHandler.initialize(coroutineScope, appState)
+    }
+
     private suspend fun handleResizeForAndroid(
         filePathList: List<Path>,
+        resizePngForAndroid: Boolean,
         coroutineScope: CoroutineScope,
     ): List<Path> {
         print("file path = $filePathList")
         return AndroidResizeHandler.run(
             filePathList = filePathList,
+            resizePngForAndroid = resizePngForAndroid,
             coroutineScope = coroutineScope,
         ).also { print("resizePathList = $it") }
     }
@@ -308,6 +327,7 @@ class MainWindow : BaseWindow(), LogPrinter {
         return PngquantHelper.run(
             filePathList = filePathList,
             deleteOriginFile = deleteOriginFile,
+            initialHandler.pngquantPath,
         ).also { print("pngquantPathList = $it") }
     }
 
@@ -319,6 +339,7 @@ class MainWindow : BaseWindow(), LogPrinter {
         return WebpHelper.run(
             filePathList = filePathList,
             deletePngquantFile = deletePngquantFile,
+            initialHandler.webpPath,
         )
     }
 
@@ -331,7 +352,7 @@ class MainWindow : BaseWindow(), LogPrinter {
 
     private fun chooseFile(skip9patch: Boolean): List<Path>? {
         val fileChooser = JFileChooser().apply {
-            fileFilter = FileNameExtensionFilter("*.png", "png")
+            fileFilter = FileNameExtensionFilter("png 和 svg", "png", "svg")
             isMultiSelectionEnabled = true
             currentDirectory = lastChooseDirectoryPath?.toFile() ?: File(Paths.get("").absolute().toString())
         }

@@ -18,9 +18,9 @@ class WindowsWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutine
         )
     }
 
-    private val copyFileHandler by lazy {
-        CopyFileHandler.create(OSSourceChecker.osSource)
-    }
+//    private val copyFileHandler by lazy {
+//        CopyFileHandler.create(OSSourceChecker.osSource)
+//    }
 
     override val isWebpAvailable: Boolean
         get() = true
@@ -28,12 +28,13 @@ class WindowsWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutine
     override suspend fun run(
         filePathList: List<Path>,
         deletePngquantFile: Boolean,
+        webpExePath: Path?,
     ): List<Path> {
+        webpExePath!!
         return withContext(Dispatchers.IO) {
-            val exePath = createExeFile()
             val createdFileList = filePathList.map {
                 coroutineScope.async(Dispatchers.IO) {
-                    val cmd = createCmd(exePath, it)
+                    val cmd = createCmd(webpExePath, it)
                     executeCmdAndGetImageCreated(cmd, it)
                 }
             }.awaitAll()
@@ -42,8 +43,8 @@ class WindowsWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutine
                 if (deletePngquantFile) {
                     filePathList.forEach { Files.deleteIfExists(it) }
                 }
-                delay(200)
-                Files.deleteIfExists(exePath)
+//                delay(200)
+//                Files.deleteIfExists(webpExePath)
             }
 
             createdFileList.map { origin ->
@@ -58,10 +59,10 @@ class WindowsWebpHandler(coroutineScope: CoroutineScope) : WebpHandler(coroutine
         }
     }
 
-    private fun createExeFile(): Path {
-        Logger.print("WebpHelper createExeFile")
-        return copyFileHandler.execute(EXE_PATH)
-    }
+//    private fun createExeFile(): Path {
+//        Logger.print("WebpHelper createExeFile")
+//        return copyFileHandler.execute(EXE_PATH)
+//    }
 
     private fun createCmd(exePath: Path, filePath: Path): Array<String> {
         val outputFileName = filePath.absolute()
