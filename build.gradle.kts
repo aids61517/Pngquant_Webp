@@ -14,6 +14,7 @@ repositories {
     google()
     mavenCentral()
     maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+    maven("https://repository.aspose.com/repo")
 }
 
 sourceSets {
@@ -21,6 +22,8 @@ sourceSets {
 }
 
 dependencies {
+    implementation(fileTree("/resources/batik") { include("*.jar")})
+
     implementation(compose.desktop.currentOs)
 
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
@@ -28,6 +31,8 @@ dependencies {
     implementation("com.squareup.okio:okio:3.2.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+
+    implementation("org.apache.xmlgraphics:batik-dom:1.14")
 }
 
 tasks.withType<KotlinCompile> {

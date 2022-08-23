@@ -121,7 +121,7 @@ class MainWindow : BaseWindow(), LogPrinter {
                     var deleteOriginFile by remember { mutableStateOf(true) }
                     var deletePngquantFile by remember { mutableStateOf(true) }
                     var skip9Patch by remember { mutableStateOf(true) }
-                    var resizeForAndroid by remember { mutableStateOf(true) }
+                    var resizePngForAndroid by remember { mutableStateOf(true) }
                     val isInitialize by remember { isInitialize }
                     val coroutineScope = rememberCoroutineScope()
 
@@ -169,12 +169,9 @@ class MainWindow : BaseWindow(), LogPrinter {
                                             lastChooseDirectoryPath = it.first()
                                                 .parent
                                             coroutineScope.launch {
-                                                val resizePathList = if (resizeForAndroid) {
-                                                    state = State.PROCESSING_RESIZE_FOR_ANDROID
-                                                    handleResizeForAndroid(it, coroutineScope)
-                                                } else {
-                                                    it
-                                                }
+                                                state = State.PROCESSING_RESIZE_FOR_ANDROID
+                                                val resizePathList =
+                                                    handleResizeForAndroid(it, resizePngForAndroid, coroutineScope)
                                                 state = State.PROCESSING_PNGQUANT
                                                 val pngquantPathList = handlePngquant(resizePathList, deleteOriginFile)
                                                 state = State.PROCESSING_WEBP
@@ -247,12 +244,12 @@ class MainWindow : BaseWindow(), LogPrinter {
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { resizeForAndroid = !resizeForAndroid }
+                            modifier = Modifier.clickable { resizePngForAndroid = !resizePngForAndroid }
                                 .padding(end = 10.dp)
                         ) {
                             Checkbox(
-                                checked = resizeForAndroid,
-                                onCheckedChange = { resizeForAndroid = it }
+                                checked = resizePngForAndroid,
+                                onCheckedChange = { resizePngForAndroid = it }
                             )
 
                             Text("產出 Android 的各尺寸圖(請選擇 4 倍圖)")
@@ -311,11 +308,13 @@ class MainWindow : BaseWindow(), LogPrinter {
 
     private suspend fun handleResizeForAndroid(
         filePathList: List<Path>,
+        resizePngForAndroid: Boolean,
         coroutineScope: CoroutineScope,
     ): List<Path> {
         print("file path = $filePathList")
         return AndroidResizeHandler.run(
             filePathList = filePathList,
+            resizePngForAndroid = resizePngForAndroid,
             coroutineScope = coroutineScope,
         ).also { print("resizePathList = $it") }
     }
@@ -353,7 +352,7 @@ class MainWindow : BaseWindow(), LogPrinter {
 
     private fun chooseFile(skip9patch: Boolean): List<Path>? {
         val fileChooser = JFileChooser().apply {
-            fileFilter = FileNameExtensionFilter("*.png", "png")
+            fileFilter = FileNameExtensionFilter("png 和 svg", "png", "svg")
             isMultiSelectionEnabled = true
             currentDirectory = lastChooseDirectoryPath?.toFile() ?: File(Paths.get("").absolute().toString())
         }
