@@ -1,9 +1,8 @@
-package aids61517.pngquant.util
+package aids61517.pngquant.util.copy
 
-import aids61517.pngquant.OSSourceChecker
-import aids61517.pngquant.PngquantHelper
 import aids61517.pngquant.data.ExePath
 import aids61517.pngquant.data.OSSource
+import aids61517.pngquant.util.Logger
 import okio.buffer
 import okio.sink
 import okio.source

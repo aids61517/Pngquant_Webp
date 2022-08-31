@@ -2,7 +2,7 @@ package aids61517.pngquant
 
 import aids61517.pngquant.data.ExePath
 import aids61517.pngquant.data.OSSource
-import aids61517.pngquant.util.CopyFileHandler
+import aids61517.pngquant.util.copy.CopyFileHandler
 import aids61517.pngquant.util.Logger
 import kotlinx.coroutines.*
 import java.nio.file.*
@@ -13,18 +13,18 @@ import kotlin.io.path.absolute
 object PngquantHelper {
     val coroutineScope = CoroutineScope(SupervisorJob())
 
-    private val copyFileHandler by lazy {
-        CopyFileHandler.create(OSSourceChecker.osSource)
-    }
+//    private val copyFileHandler by lazy {
+//        CopyFileHandler.create(OSSourceChecker.osSource)
+//    }
 
     suspend fun run(
         filePathList: List<Path>,
         deleteOriginFile: Boolean,
+        pngquantPath: Path,
     ) = withContext(Dispatchers.IO) {
-        val exePath = createExeFile()
         val createdFileList = filePathList.map {
             coroutineScope.async(Dispatchers.IO) {
-                val cmd = createCmd(exePath, it)
+                val cmd = createCmd(pngquantPath, it)
                 executeCmdAndGetImageCreated(cmd, it)
             }
         }.awaitAll()
@@ -33,7 +33,6 @@ object PngquantHelper {
             if (deleteOriginFile) {
                 filePathList.forEach { Files.deleteIfExists(it) }
             }
-            Files.deleteIfExists(exePath)
         }
 
         createdFileList
@@ -74,9 +73,9 @@ object PngquantHelper {
         }
     }
 
-    private fun createExeFile(): Path {
-        return copyFileHandler.execute(getExeSource(OSSourceChecker.osSource))
-    }
+//    private fun createExeFile(): Path {
+//        return copyFileHandler.execute(getExeSource(OSSourceChecker.osSource))
+//    }
 
     private fun getExeSource(osSource: OSSource): ExePath {
         return when (osSource) {
