@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "aids61517.pngquant"
-version = "1.0.2"
+version = "1.1.0"
 
 repositories {
     google()
@@ -45,7 +45,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "PngquantToWebp"
-            packageVersion = "1.0.2"
+            packageVersion = "1.1.0"
         }
     }
 }
