@@ -152,10 +152,19 @@ object AndroidResizeHandler {
         println("width = $width")
         println("height = $height")
 
+        val widthInt = when {
+            width.contains("px") -> width.replace("px", "").toInt()
+            else -> width.toInt()
+        }
+
+        val heightInt = when {
+            height.contains("px") -> height.replace("px", "").toInt()
+            else -> width.toInt()
+        }
 
         val pngTranscorder = PNGTranscoder().apply {
-            addTranscodingHint(PNGTranscoder.KEY_WIDTH, width.toInt() * ratio.toFloat())
-            addTranscodingHint(PNGTranscoder.KEY_HEIGHT, height.toInt() * ratio.toFloat())
+            addTranscodingHint(PNGTranscoder.KEY_WIDTH, widthInt * ratio.toFloat())
+            addTranscodingHint(PNGTranscoder.KEY_HEIGHT, heightInt * ratio.toFloat())
         }
         val input = TranscoderInput(inputPath)
         FileOutputStream(targetFilePath.absolutePathString())
